@@ -11,12 +11,14 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	DB, err := gorm.Open("sqlite3", "./appointments.db")
+	var err error
+	DB, err = gorm.Open("sqlite3", "./appointments.db")
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
 	DB.AutoMigrate(
 		&models.Appointment{},
-		&models.Attendee{})
+		&models.Attendee{},
+		&models.AppointmentAttendee{})
 }

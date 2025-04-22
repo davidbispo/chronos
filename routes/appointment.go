@@ -28,10 +28,23 @@ func AddAttendeesToAppointment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := db.DB.Create(&links).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add attendees"})
+
+	if len(links) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No attendees to add"})
 		return
 	}
+
+	for _, link := range links {
+		if err := db.DB.Create(&link).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":          "Failed to add attendee",
+				"attendee_id":    link.AttendeeID,
+				"appointment_id": link.AppointmentID,
+			})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"status": "attendees added"})
 }
 

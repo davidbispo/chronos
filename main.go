@@ -25,11 +25,11 @@ func main() {
 	})
 
 	r.POST("/appointments/add-attendess", func(c *gin.Context) {
-		routes.AddAttendeesToAppointment()
+		routes.AddAttendeesToAppointment(c)
 	})
 
-	r.POST("/appointments/remove-attendess", func(c *gin.Context) {
-		routes.RemoveAttendeesFromAppointment()
+	r.DELETE("/appointments/attendees", func(c *gin.Context) {
+		routes.RemoveAttendeesFromAppointment(c)
 	})
 
 	r.Run() // defaults to :8080
