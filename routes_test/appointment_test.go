@@ -1,4 +1,4 @@
-package routes_test
+package routes
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -14,26 +13,27 @@ import (
 	"chronos-scheduler.com/api/models"
 	"chronos-scheduler.com/api/routes"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/suite"
 )
 
-var router *gin.Engine
+type AppointmentTestSuite struct {
+	suite.Suite
+	router *gin.Engine
+}
 
-func TestMain(m *testing.M) {
-	os.Setenv("APP_ENV", "test")
+func (s *AppointmentTestSuite) SetupSuite() {
 	db.InitDB()
 
 	gin.SetMode(gin.TestMode)
-	router = gin.Default()
-	router.POST("/appointments", routes.CreateAppointment)
-	router.POST("/appointments/attendees", routes.AddAttendeesToAppointment)
-	router.DELETE("/appointments/attendees", routes.RemoveAttendeesFromAppointment) // ✅ added
-
-	os.Exit(m.Run())
+	s.router = gin.Default()
+	s.router.POST("/appointments", routes.CreateAppointment)
+	s.router.POST("/appointments/attendees", routes.AddAttendeesToAppointment)
+	s.router.DELETE("/appointments/attendees", routes.RemoveAttendeesFromAppointment)
 }
 
-func TestCreateAppointment(t *testing.T) {
+func (s *AppointmentTestSuite) TestCreateAppointment() {
 	appointment := models.Appointment{
-		ID:          fmt.Sprintf("appt-%d", time.Now().UnixNano()),
+		ID:          fmt.Sprintf("appt-%d", time.Now().Unix()),
 		Title:       "Test Appointment",
 		Description: "Test Description",
 		StartTime:   time.Now().Add(1 * time.Hour),
@@ -46,44 +46,33 @@ func TestCreateAppointment(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	s.router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("Expected 200 OK, got %d", rec.Code)
-	}
+	s.Equal(http.StatusOK, rec.Code)
 
 	var response map[string]string
-	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
-		t.Fatalf("Invalid JSON response: %v", err)
-	}
-
-	if response["status"] != "created" {
-		t.Fatalf("Expected status 'created', got %v", response["status"])
-	}
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	s.NoError(err)
+	s.Equal("created", response["status"])
 
 	var result models.Appointment
-	err := db.DB.First(&result, "id = ?", appointment.ID).Error
-	if err != nil {
-		t.Fatalf("Appointment not found in DB: %v", err)
-	}
+	err = db.DB.First(&result, "id = ?", appointment.ID).Error
+	s.NoError(err)
+	s.Equal(appointment.Title, result.Title)
 
-	defer db.DB.Delete(&result)
-
-	if result.Title != appointment.Title {
-		t.Fatalf("Expected title '%s', got '%s'", appointment.Title, result.Title)
-	}
+	db.DB.Delete(&result)
 }
 
-func TestAddAttendeesToAppointment(t *testing.T) {
+func (s *AppointmentTestSuite) TestAddAttendeesToAppointment() {
 	appointment := models.Appointment{
-		ID:        fmt.Sprintf("appt-%d", time.Now().UnixNano()),
-		Title:     "Test",
+		ID:        fmt.Sprintf("appt-%d", time.Now().Unix()),
+		Title:     "With Attendee",
 		StartTime: time.Now().Add(time.Hour),
 		EndTime:   time.Now().Add(2 * time.Hour),
 		Status:    "scheduled",
 	}
 	attendee := models.Attendee{
-		ID:     fmt.Sprintf("att-%d", time.Now().UnixNano()),
+		ID:     fmt.Sprintf("att-%d", time.Now().Unix()),
 		UserID: 1,
 		Name:   "John Doe",
 		Email:  "john@example.com",
@@ -102,34 +91,30 @@ func TestAddAttendeesToAppointment(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/appointments/attendees", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	s.router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("Expected 200 OK, got %d", rec.Code)
-	}
+	s.Equal(http.StatusOK, rec.Code)
 
 	var count int
 	db.DB.Table("appointments_attendees").
 		Where("appointment_id = ? AND attendee_id = ?", appointment.ID, attendee.ID).
 		Count(&count)
 
-	if count != 1 {
-		t.Fatalf("Expected attendee to be added to appointment, found %d", count)
-	}
+	s.Equal(1, count)
 
 	db.DB.Exec("DELETE FROM appointments_attendees WHERE appointment_id = ? AND attendee_id = ?", appointment.ID, attendee.ID)
 }
 
-func TestRemoveAttendeesFromAppointment(t *testing.T) {
+func (s *AppointmentTestSuite) TestRemoveAttendeesFromAppointment() {
 	appointment := models.Appointment{
-		ID:        fmt.Sprintf("appt-%d", time.Now().UnixNano()),
+		ID:        fmt.Sprintf("appt-%d", time.Now().Unix()),
 		Title:     "To Remove",
 		StartTime: time.Now().Add(time.Hour),
 		EndTime:   time.Now().Add(2 * time.Hour),
 		Status:    "scheduled",
 	}
 	attendee := models.Attendee{
-		ID:     fmt.Sprintf("att-%d", time.Now().UnixNano()),
+		ID:     fmt.Sprintf("att-%d", time.Now().Unix()),
 		UserID: 2,
 		Name:   "Jane Doe",
 		Email:  "jane@example.com",
@@ -146,25 +131,23 @@ func TestRemoveAttendeesFromAppointment(t *testing.T) {
 
 	defer db.DB.Delete(&appointment)
 	defer db.DB.Delete(&attendee)
-	defer db.DB.Exec("DELETE FROM appointments_attendees WHERE appointment_id = ? AND attendee_id = ?", appointment.ID, attendee.ID)
 
 	body, _ := json.Marshal([]models.AppointmentAttendee{link})
-
 	req, _ := http.NewRequest("DELETE", "/appointments/attendees", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	s.router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("Expected 200 OK, got %d", rec.Code)
-	}
+	s.Equal(http.StatusOK, rec.Code)
 
 	var count int
 	db.DB.Table("appointments_attendees").
 		Where("appointment_id = ? AND attendee_id = ?", appointment.ID, attendee.ID).
 		Count(&count)
 
-	if count != 0 {
-		t.Fatalf("Expected attendee to be removed from appointment, found %d", count)
-	}
+	s.Equal(0, count)
+}
+
+func TestAppointmentTestSuite(t *testing.T) {
+	suite.Run(t, new(AppointmentTestSuite))
 }

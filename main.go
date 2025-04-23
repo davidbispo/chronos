@@ -3,12 +3,14 @@ package main
 import (
 	"net/http"
 
+	"chronos-scheduler.com/api/config"
 	"chronos-scheduler.com/api/db"
 	"chronos-scheduler.com/api/routes"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	config.LoadEnv()
 	db.InitDB()
 	r := gin.Default()
 
@@ -24,7 +26,7 @@ func main() {
 		routes.CreateAppointment(c)
 	})
 
-	r.POST("/appointments/add-attendess", func(c *gin.Context) {
+	r.POST("/appointments/attendees", func(c *gin.Context) {
 		routes.AddAttendeesToAppointment(c)
 	})
 
