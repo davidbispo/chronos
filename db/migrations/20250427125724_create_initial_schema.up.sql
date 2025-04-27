@@ -1,6 +1,6 @@
 -- Create Appointments Table
 CREATE TABLE appointments (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255),
     description TEXT,
     start_time TIMESTAMP NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE appointments (
 
 -- Create Attendees Table
 CREATE TABLE attendees (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     name VARCHAR(255),
     email VARCHAR(255),
@@ -19,8 +19,8 @@ CREATE TABLE attendees (
 
 -- Create Appointments_Attendees Join Table
 CREATE TABLE appointments_attendees (
-    appointment_id VARCHAR(255) NOT NULL,
-    attendee_id VARCHAR(255) NOT NULL,
+    appointment_id BIGINT NOT NULL,
+    attendee_id BIGINT NOT NULL,
     role VARCHAR(50),
     rsvp_status VARCHAR(50) NOT NULL,
     PRIMARY KEY (appointment_id, attendee_id, rsvp_status),

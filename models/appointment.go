@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Appointment struct {
-	ID          string     `gorm:"primary_key;not null" json:"id"`
+	ID          int64      `gorm:"primary_key;not null;autoIncrement" json:"id"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	StartTime   time.Time  `gorm:"not null" json:"start_time"`
