@@ -1,21 +1,30 @@
-# Start from an official Go image
-FROM golang:1.21-alpine
+# syntax=docker/dockerfile:1
 
-# Set working directory
+# Start from official Go image
+FROM golang:1.22.2-alpine
+
+# Set working directory inside container
 WORKDIR /app
 
-# Install dependencies (e.g. MySQL client)
-RUN apk add --no-cache git mysql-client
+# Install required packages
+RUN apk add --no-cache git curl mysql-client make
 
-# Copy go.mod and go.sum before the rest (for layer caching)
+# Install migrate CLI
+RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz \
+    && mv migrate /usr/local/bin/
+
+# Copy Go mod files and download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy project files
+# Copy entire project
 COPY . .
 
-# Build the application
-RUN go build -o chronos ./main.go
+EXPOSE 8080
 
-# Set default command
-CMD ["./chronos"]
+# Build the Go binary
+CMD ["go", "run", "."]
+
+# Start app
+# CMD ["./chronos"]
+# CMD ["sh", "-c", "while true; do sleep 3600; done"]

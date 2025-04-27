@@ -1,56 +1,49 @@
 version: '3.8'
 
 services:
-  # db:
-  #   image: mysql:8.0
-  #   container_name: chronos-mysql
-  #   restart: always
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: root
-  #     MYSQL_DATABASE: chronos_db
-  #     MYSQL_USER: chronos
-  #     MYSQL_PASSWORD: chronos
-  #   ports:
-  #     - "3306:3306"
-  #   volumes:
-  #     - db_data:/var/lib/mysql
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
-    container_name: chronos-elasticsearch
+  db:
+    image: mysql:8.0
+    container_name: chronos-mysql
+    restart: always
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chronos_db
+      MYSQL_USER: chronos
+      MYSQL_PASSWORD: chronos
     ports:
-      - "9200:9200"
+      - "3306:3306"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    mem_limit: 1g
+      - db_data:/var/lib/mysql
 
-  # app:
-  #   build: .
-  #   container_name: chronos-app
-  #   depends_on:
-  #     - db
-  #     - elasticsearch
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+  #   container_name: chronos-elasticsearch
   #   environment:
-  #     DB_HOST: db
-  #     DB_PORT: 3306
-  #     DB_USER: chronos
-  #     DB_PASSWORD: chronos
-  #     DB_NAME: chronos_db
-  #     ES_HOST: http://elasticsearch:9200
+  #     - discovery.type=single-node
+  #     - xpack.security.enabled=false
+  #     - ES_JAVA_OPTS=-Xms512m -Xmx512m
   #   ports:
-  #     - "8080:8080"
+  #     - "9200:9200"
   #   volumes:
-  #     - .:/app
-  #   command: ./chronos
+  #     - es_data:/usr/share/elasticsearch/data
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #   mem_limit: 1g
 
+  app:
+    build: .
+    container_name: chronos-app
+    depends_on:
+      - db
+      # - elasticsearch
+    environment:
+      APP_ENV: development
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
 volumes:
-  # db_data:
-  es_data:
+  db_data:
+  # es_data:

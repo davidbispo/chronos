@@ -34,5 +34,5 @@ func main() {
 		routes.RemoveAttendeesFromAppointment(c)
 	})
 
-	r.Run() // defaults to :8080
+	r.Run()
 }

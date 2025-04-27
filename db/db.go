@@ -1,28 +1,41 @@
 package db
 
 import (
+	"fmt"
 	"log"
+	"os"
 
-	"chronos-scheduler.com/api/config"
-	"chronos-scheduler.com/api/models"
-	"github.com/jinzhu/gorm"
-	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
 func InitDB() {
-	projectRoot := config.RootPath()
-	dbFolder := projectRoot + "/appointments.db"
-
 	var err error
-	DB, err = gorm.Open("sqlite3", dbFolder)
+
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	if dbPort == "" {
+		dbPort = "3306"
+	}
+
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dbUser, dbPassword, dbHost, dbPort, dbName,
+	)
+
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	DB.AutoMigrate(
-		&models.Appointment{},
-		&models.Attendee{},
-		&models.AppointmentAttendee{})
+	fmt.Println("Database connection established successfully.")
 }

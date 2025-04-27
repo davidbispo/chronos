@@ -23,7 +23,7 @@ func RootPath(paths ...string) string {
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			break // hit root of filesystem
+			break
 		}
 		dir = parent
 	}
